@@ -1,241 +1,71 @@
 <!doctype html>
-
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Hassan Baloch — AI Video Generator (Pro)</title>  <!--
-    Single-file PRO version ready to deploy on Vercel (static).
-    Features:
-      - Prompt input + Generate
-      - Animated loading screen with progress checks
-      - Download button for ready videos
-      - "Previous Videos" history (localStorage)
-      - Hassan Baloch logo + glowing UI
-      - Friendly error handling
-
-    How to use: upload this file (index.html) to a GitHub repo and deploy to Vercel.
-  -->  <style>
-    :root{
-      --bg:#06060a; --card:#0f1720; --accent:#00ffcc; --muted:#95a0a6;
-      --glass: rgba(255,255,255,0.03);
-    }
-    *{box-sizing:border-box}
-    body{
-      margin:0; font-family:Inter, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
-      background: radial-gradient(1200px 600px at 10% 10%, rgba(0,255,204,0.03), transparent),
-                  radial-gradient(1000px 500px at 90% 80%, rgba(0,204,255,0.02), transparent),
-                  var(--bg);
-      color:#e6eef3; -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;
-      padding:28px;
-    }
-
-    .container{max-width:980px;margin:0 auto}
-    header{display:flex;align-items:center;gap:16px}
-    .logo{
-      width:64px;height:64px;border-radius:12px;background:linear-gradient(135deg,var(--accent),#00a3ff);
-      display:flex;align-items:center;justify-content:center;box-shadow:0 8px 30px rgba(0,255,204,0.08);
-      font-weight:700;color:#02121a;font-size:18px
-    }
-    h1{font-size:20px;margin:0}
-    p.lead{margin:6px 0 20px;color:var(--muted)}
-
-    .grid{display:grid;grid-template-columns:1fr 360px;gap:22px}
-
-    .card{background:linear-gradient(180deg,rgba(255,255,255,0.02),var(--glass));border-radius:14px;padding:18px;box-shadow:0 6px 30px rgba(0,0,0,0.6)}
-
-    textarea#prompt{width:100%;min-height:140px;background:transparent;border:1px solid rgba(255,255,255,0.06);padding:14px;border-radius:10px;color:inherit;font-size:15px}
-
-    .controls{display:flex;gap:10px;align-items:center;margin-top:12px}
-    button.btn{padding:10px 14px;border-radius:10px;border:0;cursor:pointer;font-weight:600}
-    .btn-generate{background:linear-gradient(90deg,var(--accent),#00a3ff);color:#02121a}
-    .btn-clear{background:transparent;border:1px solid rgba(255,255,255,0.06);color:var(--muted)}
-
-    .status{margin-top:14px;color:var(--muted);font-size:14px}
-
-    /* Loader */
-    .loader-wrap{margin-top:18px;display:none;align-items:center;gap:12px}
-    .spinner{width:42px;height:42px;border-radius:50%;background:conic-gradient(var(--accent),transparent 60%);filter:blur(0.6px);animation:spin 1.8s linear infinite}
-    @keyframes spin{to{transform:rotate(360deg)}}
-
-    .progress-text{font-size:14px;color:var(--accent)}
-
-    /* result */
-    .result-area{margin-top:18px}
-    video{width:100%;border-radius:10px;display:block}
-
-    .sidebar .box-title{font-weight:700;margin-bottom:12px}
-    .history-list{display:flex;flex-direction:column;gap:10px;max-height:520px;overflow:auto;padding-right:6px}
-    .history-item{display:flex;gap:10px;align-items:center;background:rgba(255,255,255,0.02);padding:8px;border-radius:10px}
-    .thumb{width:72px;height:48px;background:#071018;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--muted)}
-    .meta{flex:1}
-    .meta small{display:block;color:var(--muted);font-size:12px}
-    .meta b{display:block}
-    .item-actions{display:flex;gap:8px}
-    .link-btn{padding:6px 8px;border-radius:8px;border:0;background:rgba(255,255,255,0.03);cursor:pointer}
-
-    footer{margin-top:26px;color:var(--muted);text-align:center;font-size:13px}
-
-    /* responsive */
-    @media(max-width:880px){.grid{grid-template-columns:1fr} .sidebar{order:2}}
-  </style></head>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Hassan Baloch — AI Video Maker (Pro)</title>
+  <link rel="stylesheet" href="/style.css" />
+</head>
 <body>
-  <div class="container">
-    <header>
-      <div class="logo">HB</div>
-      <div>
-        <h1>Hassan Baloch — AI Video Generator (Pro)</h1>
-        <p class="lead">Type your idea in simple English. Website will make the video using Veo3.0-fast API and show it here. No signup needed.</p>
+  <div class="wrap">
+    <header class="top">
+      <div class="logo-wrap">
+        <div class="logo-anim" aria-hidden="true">
+          <span class="logo-text">Hassan Baloch</span>
+        </div>
       </div>
-    </header><main class="grid" style="margin-top:18px">
-  <section class="card main-card">
-    <label for="prompt"><strong>Write your video prompt</strong></label>
-    <textarea id="prompt" placeholder="e.g. A calm sunset over the sea, cinematic, 10 seconds, slow motion"></textarea>
-
-    <div class="controls">
-      <button id="generateBtn" class="btn btn-generate">⚡ Generate Video</button>
-      <button id="clearBtn" class="btn btn-clear">✖ Clear</button>
-      <div style="margin-left:auto;color:var(--muted);font-size:13px">API: Yabes Veo3.0-fast</div>
-    </div>
-
-    <div id="status" class="status"></div>
-
-    <div id="loader" class="loader-wrap">
-      <div class="spinner"></div>
-      <div>
-        <div class="progress-text" id="progressText">Preparing...</div>
-        <div style="color:var(--muted);font-size:13px" id="progressSub">We will check status automatically.</div>
+      <div class="title-block">
+        <h1>AI Video Maker — Hassan Baloch</h1>
+        <p class="subtitle">Type any idea. Click generate. Website will create video using Veo3.0-fast.</p>
       </div>
-    </div>
+    </header>
 
-    <div class="result-area" id="resultArea"></div>
-  </section>
+    <main class="grid">
+      <section class="card main-card">
+        <label for="prompt"><strong>Describe your video (prompt)</strong></label>
+        <textarea id="prompt" placeholder="e.g. cinematic sunset over ocean, slow motion, 8s"></textarea>
 
-  <aside class="sidebar card">
-    <div>
-      <div class="box-title">Preview / Previous Videos</div>
-      <div class="history-list" id="historyList">
-        <!-- items filled by JS -->
-      </div>
-    </div>
+        <div class="controls">
+          <button id="generateBtn" class="btn primary">⚡ Generate Video</button>
+          <button id="clearBtn" class="btn ghost">✖ Clear</button>
+          <div class="info">API: proxied → Yabes Veo3.0-fast</div>
+        </div>
 
-    <hr style="margin:14px 0;border-color:rgba(255,255,255,0.03)" />
+        <div id="status" class="status"></div>
 
-    <div style="font-size:13px;color:var(--muted)">
-      <b>Tips:</b>
-      <ul style="padding-left:18px;margin:8px 0;color:var(--muted)">
-        <li>Be descriptive: mood, camera angle, length (e.g. "8s"), visual style.</li>
-        <li>Short prompts often produce better results.</li>
-      </ul>
-    </div>
-  </aside>
-</main>
-
-<footer>
-  © 2025 Hassan Baloch — Built for demos. Use responsibly.
-</footer>
-
-  </div>  <script>
-    // PRO client-side logic
-    // Uses public Yabes API endpoint from user: https://yabes-api.pages.dev/api/ai/video/v2
-
-    const API_BASE = 'https://yabes-api.pages.dev/api/ai/video/v2';
-    const generateBtn = document.getElementById('generateBtn');
-    const clearBtn = document.getElementById('clearBtn');
-    const promptEl = document.getElementById('prompt');
-    const statusEl = document.getElementById('status');
-    const loader = document.getElementById('loader');
-    const progressText = document.getElementById('progressText');
-    const resultArea = document.getElementById('resultArea');
-    const historyList = document.getElementById('historyList');
-
-    // Local history storage key
-    const STORAGE_KEY = 'hb_video_history_v1';
-
-    // Utility: save to history (localStorage)
-    function saveToHistory(item){
-      try{
-        const list = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
-        list.unshift(item);
-        // keep only latest 25
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(list.slice(0,25)));
-        renderHistory();
-      }catch(e){console.warn(e)}
-    }
-
-    function loadHistory(){
-      try{ return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); }
-      catch(e){return []}
-    }
-
-    function renderHistory(){
-      const list = loadHistory();
-      historyList.innerHTML = list.map(it => {
-        const time = new Date(it.ts).toLocaleString();
-        return `
-          <div class="history-item">
-            <div class="thumb">▶</div>
-            <div class="meta">
-              <b>${escapeHtml(it.prompt).slice(0,60)}${it.prompt.length>60?'...':''}</b>
-              <small>${time}</small>
-            </div>
-            <div class="item-actions">
-              ${it.videoUrl?`<button class="link-btn" data-action="play" data-url="${it.videoUrl}">Play</button>`:''}
-              ${it.videoUrl?`<a class="link-btn" href="${it.videoUrl}" download target="_blank">Download</a>`:''}
-              <button class="link-btn" data-action="remove" data-ts="${it.ts}">Remove</button>
-            </div>
-          </div>
-        `;
-      }).join('') || '<div style="color:var(--muted);font-size:13px">No previous videos yet.</div>';
-
-      // attach events
-      historyList.querySelectorAll('[data-action]').forEach(btn => {
-        btn.onclick = (e)=>{
-          const action = btn.getAttribute('data-action');
-          if(action === 'play'){
-            const url = btn.getAttribute('data-url');
-            showVideo(url, 'From history');
-          }else if(action === 'remove'){
-            const ts = btn.getAttribute('data-ts');
-            const filtered = loadHistory().filter(i=>String(i.ts)!==String(ts));
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(filtered));
-            renderHistory();
-          }
-        }
-      });
-    }
-
-    function escapeHtml(s){return (s+'').replace(/[&<>"]+/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':'&quot;'}[c]||c));}
-
-    function showLoader(msg, sub){
-      loader.style.display='flex';
-      progressText.textContent = msg||'Preparing...';
-      document.getElementById('progressSub').textContent = sub||'We will check status automatically.';
-    }
-    function hideLoader(){ loader.style.display='none'; }
-
-    function showVideo(url, note){
-      resultArea.innerHTML = `
-        <div style="display:flex;gap:10px;align-items:center;justify-content:space-between">
-          <div style="font-size:14px;color:var(--muted)">${note||'Result'}</div>
-          <div>
-            <a class="link-btn" href="${url}" download target="_blank">Download</a>
+        <div id="loader" class="loader" hidden>
+          <div class="spinner"></div>
+          <div class="loader-text">
+            <div id="progressText">Preparing task...</div>
+            <small id="progressSub">Checking status automatically</small>
           </div>
         </div>
-        <video controls src="${url}"></video>
-      `;
-    }
 
-    async function createTask(prompt){
-      const url = API_BASE + '?action=create&prompt=' + encodeURIComponent(prompt);
-      const res = await fetch(url);
-      if(!res.ok) throw new Error('Create request failed: '+res.status);
-      const data = await res.json();
-      return data;
-    }
+        <div id="resultArea" class="result"></div>
+      </section>
 
-    async function checkStatus(taskId){
-      const url = API_BASE + '?action=status&taskId=' + encodeURIComponent(taskId);
+      <aside class="card sidebar">
+        <div class="side-title">Previous Videos</div>
+        <div id="historyList" class="history"></div>
+
+        <hr />
+
+        <div class="tips">
+          <b>Tips:</b>
+          <ul>
+            <li>Be specific: mood, length (e.g. "8s"), camera angle.</li>
+            <li>Short, clear prompts often work best.</li>
+          </ul>
+        </div>
+      </aside>
+    </main>
+
+    <footer class="footer">Created by 🫀 by Hassan AISA kuch</footer>
+  </div>
+
+  <script src="/script.js"></script>
+</body>
+</html>skId);
       const res = await fetch(url);
       if(!res.ok) throw new Error('Status request failed: '+res.status);
       return await res.json();
