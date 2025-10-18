@@ -1,40 +1,24 @@
-// api/proxy.js
-// Simple proxy for Yabes API to avoid browser CORS issues.
-// It forwards query string and body to target endpoint and returns JSON.
-
-const TARGET = 'https://yabes-api.pages.dev/api/ai/video/v2';
-
 export default async function handler(req, res) {
+  const { action, prompt, taskId } = req.query;
+
+  let apiUrl = "https://yabes-api.pages.dev/api/ai/video/v2";
+
+  if (action === "create" && prompt) {
+    apiUrl += `?action=create&prompt=${encodeURIComponent(prompt)}`;
+  } else if (action === "status" && taskId) {
+    apiUrl += `?action=status&taskId=${encodeURIComponent(taskId)}`;
+  } else {
+    return res.status(400).json({ error: "Missing parameters" });
+  }
+
   try {
-    // Build target URL with query string forwarded
-    const url = new URL(TARGET);
-    // copy incoming query params (action, prompt, taskId, etc.)
-    for (const [k, v] of Object.entries(req.query || {})) {
-      url.searchParams.set(k, v);
-    }
-
-    // Setup fetch options
-    const fetchOptions = {
-      method: req.method || 'GET',
-      headers: {
-        // Forward content-type if present
-        ...(req.headers['content-type'] ? { 'content-type': req.headers['content-type'] } : {}),
-        // Some APIs need an origin/host header; we don't override others
-      },
-      // body only for non-GET
-      body: ['GET','HEAD'].includes(req.method) ? undefined : req.body && JSON.stringify(req.body),
-      // set redirect: 'follow' to follow any redirects
-      redirect: 'follow'
-    };
-
-    // If req.method is POST and body already parsed by Vercel, stringify appropriately
-    if (req.method === 'POST' && req.body && typeof req.body === 'object') {
-      fetchOptions.body = JSON.stringify(req.body);
-      fetchOptions.headers['content-type'] = 'application/json';
-    }
-
-    const r = await fetch(url.toString(), fetchOptions);
-
+    const response = await fetch(apiUrl);
+    const data = await response.json();
+    res.status(200).json(data);
+  } catch (error) {
+    res.status(500).json({ error: "Proxy error", details: error.message });
+  }
+}
     // try to forward response as JSON if possible
     const contentType = r.headers.get('content-type') || '';
     const text = await r.text();
