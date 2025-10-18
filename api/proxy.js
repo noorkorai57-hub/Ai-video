@@ -1,59 +1,42 @@
 export default async function handler(req, res) {
   const { action, prompt, taskId } = req.query;
 
-  let apiUrl = "https://yabes-api.pages.dev/api/ai/video/v2";
-
-  if (action === "create" && prompt) {
-    apiUrl += `?action=create&prompt=${encodeURIComponent(prompt)}`;
-  } else if (action === "status" && taskId) {
-    apiUrl += `?action=status&taskId=${encodeURIComponent(taskId)}`;
-  } else {
-    return res.status(400).json({ error: "Missing parameters" });
-  }
-
   try {
-    const response = await fetch(apiUrl);
-    const data = await response.json();
-    res.status(200).json(data);
-  } catch (error) {
-    res.status(500).json({ error: "Proxy error", details: error.message });
-  }
-}
-    // try to forward response as JSON if possible
-    const contentType = r.headers.get('content-type') || '';
-    const text = await r.text();
+    // Basic validation
+    if (!action) return res.status(400).json({ error: "Missing 'action' parameter" });
 
-    // Set safe CORS headers for browser to call /api/proxy
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-
-    // Handle preflight
-    if (req.method === 'OPTIONS') {
-      return res.status(200).end();
-    }
-
-    // forward status
-    res.status(r.status || 200);
-
-    // If JSON, parse and send json
-    if (contentType.includes('application/json')) {
-      try {
-        const json = JSON.parse(text);
-        return res.json(json);
-      } catch (e) {
-        // fallback to text
-        return res.send(text);
-      }
+    // Build API URL
+    let apiUrl = "https://yabes-api.pages.dev/api/ai/video/v2";
+    if (action === "create" && prompt) {
+      apiUrl += `?action=create&prompt=${encodeURIComponent(prompt)}`;
+    } else if (action === "status" && taskId) {
+      apiUrl += `?action=status&taskId=${encodeURIComponent(taskId)}`;
     } else {
-      // other types (text/html etc.)
-      res.setHeader('content-type', contentType || 'text/plain');
-      return res.send(text);
+      return res.status(400).json({ error: "Invalid parameters" });
     }
 
-  } catch (err) {
-    console.error('Proxy error', err);
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.status(500).json({ error: 'Proxy error', details: (err && err.message) || String(err) });
+    // Fetch request
+    const response = await fetch(apiUrl, { method: "GET" });
+
+    // Handle non-OK responses
+    if (!response.ok) {
+      const text = await response.text();
+      return res.status(response.status).json({ error: "API request failed", details: text });
+    }
+
+    // Try parsing JSON safely
+    const text = await response.text();
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch {
+      data = { raw: text }; // fallback if not valid JSON
+    }
+
+    res.status(200).json(data);
+
+  } catch (error) {
+    console.error("Proxy Error:", error);
+    res.status(500).json({ error: "Server crashed", details: error.message });
   }
 }
