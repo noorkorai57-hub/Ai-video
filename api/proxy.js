@@ -1,37 +1,15 @@
-module.exports = async (req, res) => {
-  const { action, prompt, taskId } = req.query;
-
+module.exports = async function (req, res) {
   try {
-    if (!action) return res.status(400).json({ error: "Missing 'action' parameter" });
+    const { action, prompt } = req.query;
 
-    let apiUrl = "https://yabes-api.pages.dev/api/ai/video/v2";
-    if (action === "create" && prompt) {
-      apiUrl += `?action=create&prompt=${encodeURIComponent(prompt)}`;
-    } else if (action === "status" && taskId) {
-      apiUrl += `?action=status&taskId=${encodeURIComponent(taskId)}`;
-    } else {
-      return res.status(400).json({ error: "Invalid parameters" });
+    if (action === "create") {
+      // test response
+      return res.status(200).json({ message: `Prompt received: ${prompt}` });
     }
 
-    const response = await fetch(apiUrl, { method: "GET" });
-
-    if (!response.ok) {
-      const text = await response.text();
-      return res.status(response.status).json({ error: "API request failed", details: text });
-    }
-
-    const text = await response.text();
-    let data;
-    try {
-      data = JSON.parse(text);
-    } catch {
-      data = { raw: text };
-    }
-
-    res.status(200).json(data);
-
-  } catch (error) {
-    console.error("Proxy Error:", error);
-    res.status(500).json({ error: "Server crashed", details: error.message });
+    res.status(400).json({ error: "Invalid action" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server crashed" });
   }
-};
+};};
